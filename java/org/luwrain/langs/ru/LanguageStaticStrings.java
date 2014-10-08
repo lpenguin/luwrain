@@ -99,14 +99,12 @@ public class LanguageStaticStrings implements org.luwrain.core.LanguageStaticStr
 	    return "Конец столбца";
 	case Langs.MESSAGE:
 	    return "Сообщение";
-	case Langs.MESSAGE_FOR:
-	    return "Сообщение для";
 	case Langs.MESSAGE_TO:
-	    return "Кому";
+	    return "Кому:";
 	case Langs.MESSAGE_CC:
-	    return "Копия";
+	    return "Копия:";
 	case Langs.MESSAGE_SUBJECT:
-	    return "Тема";
+	    return "Тема:";
 	case Langs.MESSAGE_TEXT:
 	    return "Введите ниже текст сообщения:";
 	case Langs.MESSAGE_ATTACHMENT:
@@ -115,6 +113,10 @@ public class LanguageStaticStrings implements org.luwrain.core.LanguageStaticStr
 	    return "Прикрепления файла";
 	case Langs.MESSAGE_ATTACHMENT_POPUP_PREFIX:
 	    return "Файл для прикрепления:";
+	case Langs.COPIED_LINES:
+	    return "Скопировано строк:";
+	case Langs.CUT_LINES:
+	    return "Вырезано строк:";
 	default:
 	    return "#Неизвестный идентификатор строки?#";
 	}

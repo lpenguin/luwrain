@@ -14,8 +14,6 @@
    General Public License for more details.
 */
 
-//FIXME:ControlEnvironment interface support;
-
 package org.luwrain.controls;
 
 import java.util.*;
@@ -30,31 +28,56 @@ public class MultilinedEdit implements CopyCutRequest
     private final String textEndMessage = Langs.staticValue(Langs.AREA_END);
     private final String lineEndMessage = Langs.staticValue(Langs.END_OF_LINE);
 
+    private ControlEnvironment environment;
     private MultilinedEditModel model;
     private CopyCutInfo copyCutInfo;
 
-    public MultilinedEdit(MultilinedEditModel model)
+    public MultilinedEdit(ControlEnvironment environment, MultilinedEditModel model)
     {
+	this.environment = environment;
 	this.model = model;
 	this.copyCutInfo = new CopyCutInfo(this);
     }
 
     public boolean onKeyboardEvent(KeyboardEvent event)
     {
+	boolean res = false;
 	if (!event.isCommand())
-	    return onChar(event);
+	{
+	    if (!model.beginEditTrans())
+		return false;
+	    res = onChar(event);
+	    model.endEditTrans();
+	    return res;
+	}
 	if (event.isModified())
 	    return false;
 	switch(event.getCommand())
 	{
 	case KeyboardEvent.BACKSPACE:
-	    return onBackspace(event);
+	    if (!model.beginEditTrans())
+		return false;
+	    res = onBackspace(event);
+	    model.endEditTrans();
+	    return res;
 	case KeyboardEvent.DELETE:
-	    return onDelete(event);
+	    if (!model.beginEditTrans())
+		return false;
+	    res = onDelete(event);
+	    model.endEditTrans();
+	    return res;
 	case KeyboardEvent.TAB:
-	    return onTab(event);
+	    if (!model.beginEditTrans())
+		return false;
+	    res = onTab(event);
+	    model.endEditTrans();
+	    return res;
 	case KeyboardEvent.ENTER:
-	    return onEnter(event);
+	    if (!model.beginEditTrans())
+		return false;
+	    res = onEnter(event);
+	    model.endEditTrans();
+	    return res;
 	default:
 	    return false;
 	}
@@ -62,6 +85,7 @@ public class MultilinedEdit implements CopyCutRequest
 
     public boolean onEnvironmentEvent(EnvironmentEvent event)
     {
+	boolean res = false;
 	switch(event.getCode())
 	{
 	case EnvironmentEvent.COPY_CUT_POINT:
@@ -69,11 +93,17 @@ public class MultilinedEdit implements CopyCutRequest
 	case EnvironmentEvent.COPY:
 	    return copyCutInfo.doCopy(model.getHotPointX(), model.getHotPointY());
 	case EnvironmentEvent.CUT:
-	    return copyCutInfo.doCut(model.getHotPointX(), model.getHotPointY());
+	    if (!model.beginEditTrans())
+		return false;
+	    res = copyCutInfo.doCut(model.getHotPointX(), model.getHotPointY());
+	    model.endEditTrans();
+	    return res;
 	case EnvironmentEvent.INSERT:
-	    if (event instanceof InsertEvent)
-		return onInsert((InsertEvent)event);
-	    return false;
+	    if (!(event instanceof InsertEvent) || !model.beginEditTrans())
+		return false;
+res = onInsert((InsertEvent)event);
+model.endEditTrans();
+return res;
 	default:
 	    return false;
 	}
@@ -81,6 +111,7 @@ public class MultilinedEdit implements CopyCutRequest
 
     private boolean onBackspace(KeyboardEvent event)
     {
+	//Preparing;
 	final int index = model.getHotPointY();
 	final int count = model.getLineCount();
 	if (count < 1)
@@ -96,29 +127,32 @@ public class MultilinedEdit implements CopyCutRequest
 	int pos = model.getHotPointX();
 	if (pos > line.length())
 	    pos = line.length();
-
+	//Nothing to eliminate with backspace;
 	if (pos < 1 && index < 1)
-	{
-	    if (count == 1 && line.isEmpty())
-		model.removeLine(0);
-	    Speech.say(textBeginMessage, Speech.PITCH_HIGH);
-	    return true;
-	}
-	if (pos < 1)
-	{
-	    final int prevPos = model.getLine(index - 1).length();
-	    model.setLine(index - 1, model.getLine(index - 1) + line);
-	    model.removeLine(index);
-	    model.setHotPoint(prevPos, index - 1);
-	    Speech.say(lineEndMessage, Speech.PITCH_HIGH);
-	    return true;
-	}
-	String newLine = new String(line.substring(0, pos - 1) + line.substring(pos));
-	if (count == 1 && newLine.isEmpty() && pos == 1)
-	    model.removeLine(0); else
-	model.setLine(index, newLine);
-	model.setHotPoint(pos - 1, index);
-	Speech.sayLetter(line.charAt(pos - 1));
+	    Speech.say(textBeginMessage, Speech.PITCH_HIGH); else
+	    //Jumping to previous line;
+	    if (pos < 1)
+	    {
+		final int prevLineIndex = index - 1;
+		String prevLine = model.getLine(prevLineIndex);
+		if (prevLine == null)
+		    prevLine = "";
+		final int prevLinePos = prevLine.length();
+		model.setLine(prevLineIndex, prevLine + line);
+		model.removeLine(index);
+		model.setHotPoint(prevLinePos, prevLineIndex);
+		Speech.say(lineEndMessage, Speech.PITCH_HIGH);
+	    } else
+		//Eliminating just previous char;
+	    {
+		final String newLine = line.substring(0, pos - 1) + line.substring(pos);
+		model.setLine(index, newLine);
+		model.setHotPoint(pos - 1, index);
+		Speech.sayLetter(line.charAt(pos - 1));
+	    }
+	//Removing first empty line  if it is the only line in model;
+	if (model.getLineCount() == 1 && model.getLine(0).isEmpty())
+	    model.removeLine(0);
 	return true;
     }
 
@@ -139,28 +173,35 @@ public class MultilinedEdit implements CopyCutRequest
 	int pos = model.getHotPointX();
 	if (pos > line.length())
 	    pos = line.length();
-
+	//Nothing to eliminate with delete;
 	if (index + 1>= count && pos >= line.length())
-	{
-	    Speech.say(textEndMessage, Speech.PITCH_HIGH);
-	    return true;
-	}
-	if (pos == line.length())
-	{
-	    model.setLine(index, line + model.getLine(index + 1));
-	    model.removeLine(index + 1);
-	    Speech.say(lineEndMessage, Speech.PITCH_HIGH);
-	    return true;
-	}
-	if (pos == line.length() - 1)
-	{
-	    model.setLine(index, line.substring(0, pos));
-	    Speech.sayLetter(line.charAt(pos));
-	    return true;
-	}
-	String newLine = new String(line.substring(0, pos) + line.substring(pos + 1));
-	model.setLine(index, newLine);
-	Speech.sayLetter(line.charAt(pos));
+	    Speech.say(textEndMessage, Speech.PITCH_HIGH); else
+	    //Eliminating new line position;
+	    if (pos == line.length())
+	    {
+		final int nextLineIndex = index + 1;
+		String nextLine = model.getLine(nextLineIndex);
+		if (nextLine == null)
+		    nextLine = "";
+		model.setLine(index, line + nextLine);
+		model.removeLine(nextLineIndex);
+		Speech.say(lineEndMessage, Speech.PITCH_HIGH);
+	    } else
+		//eliminating last character of line;
+		if (pos + 1 == line.length())
+		{
+		    model.setLine(index, line.substring(0, pos));
+		    Speech.sayLetter(line.charAt(pos));
+		} else
+		    //Eliminating just last character of line;
+		{
+		    String newLine = line.substring(0, pos) + line.substring(pos + 1);
+		    model.setLine(index, newLine);
+		    Speech.sayLetter(line.charAt(pos));
+		}
+	//Removing first empty line  if it is the only line in model;
+	if (model.getLineCount() == 1 && model.getLine(0).isEmpty())
+	    model.removeLine(0);
 	return true;
     }
 
@@ -175,14 +216,13 @@ public class MultilinedEdit implements CopyCutRequest
 	    model.addLine("");
 	    ++count;
 	}
-	final String line = model.getLine(index);
+	String line = model.getLine(index);
 	if (line == null)
-	    return false;
+	    line = "";
 	int pos = model.getHotPointX();
 	if (pos > line.length())
 	    pos = line.length();
-
-	String tabSeq = model.getTabSeq();
+	final String tabSeq = model.getTabSeq();
 	if (tabSeq == null)
 	    return false;
 	if (pos == line.length())
@@ -192,7 +232,7 @@ public class MultilinedEdit implements CopyCutRequest
 	    model.setHotPoint(pos + tabSeq.length(), index);
 	    return true;
 	}
-	String newLine = new String(line.substring(0, pos) + tabSeq + line.substring(pos));
+	final String newLine = line.substring(0, pos) + tabSeq + line.substring(pos);
 	model.setLine(index, newLine);
 	model.setHotPoint(pos + tabSeq.length(), index);
 	Speech.say(tabMessage);
@@ -210,13 +250,12 @@ public class MultilinedEdit implements CopyCutRequest
 	    model.addLine("");
 	    ++count;
 	}
-	final String line = model.getLine(index);
+	String line = model.getLine(index);
 	if (line == null)
-	    return false;
+	    line = "";
 	int pos = model.getHotPointX();
 	if (pos > line.length())
 	    pos = line.length();
-
 	if (pos >= line.length())
 	{
 	    model.insertLine(index + 1, "");
@@ -225,7 +264,7 @@ public class MultilinedEdit implements CopyCutRequest
 	    return true;
 	}
 	model.setLine(index, line.substring(0, pos));
-	String newLine = line.substring(pos);
+	final String newLine = line.substring(pos);
 	model.insertLine(index + 1, newLine);
 	model.setHotPoint(0, index + 1);
 	Speech.say(newLine);
@@ -243,13 +282,12 @@ public class MultilinedEdit implements CopyCutRequest
 	    model.addLine("");
 	    ++count;
 	}
-	final String line = model.getLine(index);
+	String line = model.getLine(index);
 	if (line == null)
-	    return false;
+	    line = "";
 	int pos = model.getHotPointX();
 	if (pos > line.length())
 	    pos = line.length();
-
 	final char c = event.getCharacter();
 	if (pos == line.length())
 	{
@@ -265,7 +303,7 @@ public class MultilinedEdit implements CopyCutRequest
 		Speech.sayLetter(c);
 	    return true;
 	}
-	String newLine = new String(line.substring(0, pos) + c + line.substring(pos));
+	final String newLine = line.substring(0, pos) + c + line.substring(pos);
 	model.setLine(index, newLine);
 	model.setHotPoint(pos + 1, index);
 	if (c == ' ')
@@ -285,7 +323,7 @@ public class MultilinedEdit implements CopyCutRequest
 	    return false;
 	if (fromY == toY)
 	{
-	    String line = model.getLine(fromY);
+	    final String line = model.getLine(fromY);
 	    if (line == null || line.isEmpty())
 		return false;
 	    int fromPos = fromX < line.length()?fromX:line.length();
@@ -294,7 +332,8 @@ public class MultilinedEdit implements CopyCutRequest
 		return false;
 	    String[] res = new String[1];
 	    res[0] = line.substring(fromPos, toPos);
-	    Luwrain.setClipboard(res);
+	    environment.say(res[0]);
+	    environment.setClipboard(res);
 	    return true;
 	}
 	Vector<String> res = new Vector<String>();
@@ -313,38 +352,81 @@ public class MultilinedEdit implements CopyCutRequest
 	if (line == null)
 	    return false;
 	res.add(line.substring(0, toX <line.length()?toX:line.length()));
-	Luwrain.setClipboard(res.toArray(new String[res.size()]));
+	environment.hint(environment.langStaticString(Langs.COPIED_LINES) + res.size());
+	environment.setClipboard(res.toArray(new String[res.size()]));
 	return true;
     }
 
     @Override public boolean onCut(int fromX, int fromY, int toX, int toY)
     {
-	//FIXME:
-	return false;
+	if (toY >= model.getLineCount())
+	    return false;
+	if (fromY == toY)
+	{
+	    final String line = model.getLine(fromY);
+	    if (line == null || line.isEmpty())
+		return false;
+	    int fromPos = fromX < line.length()?fromX:line.length();
+	    int toPos = toX < line.length()?toX:line.length();
+	    if (fromPos >= toPos)
+		return false;
+	    String[] res = new String[1];
+	    res[0] = line.substring(fromPos, toPos);
+	    model.setLine(fromY, line.substring(0, fromPos) + line.substring(toPos));
+	    environment.say(res[0]);
+	    environment.setClipboard(res);
+	    return true;
+	}
+	Vector<String> res = new Vector<String>();
+	String firstLine = model.getLine(fromY);
+	if (firstLine == null)
+	    firstLine = "";
+	final int fromPos = fromX < firstLine.length()?fromX:firstLine.length();
+	res.add(firstLine.substring(fromPos));
+	for(int i = fromY + 1;i < toY;++i)
+	{
+	    String line = model.getLine(i);
+	    if (line == null)
+		line = "";
+	    res.add(line);
+	}
+	String endingLine = model.getLine(toY);
+	if (endingLine == null)
+	    endingLine = "";
+	final int toPos = toX <endingLine.length()?toX:endingLine.length();
+	res.add(endingLine.substring(0, toPos));
+	model.setLine(fromY, firstLine.substring(0, fromPos) + endingLine.substring(toPos));
+	for(int i = fromY + 1;i <= toY;++i)
+	    model.removeLine(fromY + 1);
+	environment.hint(environment.langStaticString(Langs.CUT_LINES) + res.size());
+	environment.setClipboard(res.toArray(new String[res.size()]));
+	return true;
     }
 
     private boolean onInsert(InsertEvent event)
     {
 	if (event.getData() == null || !(event.getData() instanceof String[]))
 	    return false;
-	String[] text = (String[])event.getData();
+	final String[] text = (String[])event.getData();
 	if (text.length < 1)
 	    return false;
 	if (model.getHotPointY() >= model.getLineCount())
 	{
 	    for(String s: text)
-		model.addLine(s);
+		model.addLine(s != null?s:"");
 	    model.setHotPoint(text[text.length - 1].length(), model.getLineCount() - 1);
+	    environment.say(text[0]);
 	    return true;
 	}
 	if (text.length == 1)
 	{
 	    int index = model.getHotPointY();
 	    String line = model.getLine(index);
-	    int pos = model.getHotPointX() < line.length()?model.getHotPointX():line.length();
+	    final int pos = model.getHotPointX() < line.length()?model.getHotPointX():line.length();
 	    line = line.substring(0, pos) + text[0] + line.substring(pos);
 	    model.setLine(index, line);
 	    model.setHotPoint(pos + text[0].length(), index);
+	    environment.say(text[0]);
 	    return true;
 	}
 	//Multilined new text;
@@ -356,6 +438,7 @@ public class MultilinedEdit implements CopyCutRequest
 	    model.insertLine(index + i, text[i]);
 	model.insertLine(index + text.length - 1, text[text.length - 1] + line.substring(pos));
 	model.setHotPoint(text[text.length - 1].length(), index + text.length - 1);
+	environment.say(text[0]);
 	return true;
     }
 }
