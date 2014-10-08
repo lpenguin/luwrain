@@ -30,6 +30,7 @@ collect_xml()
 
 CLASS_PATH=":$(collect_jars "$LUWRAIN_DIR/lib/.")"
 CLASS_PATH="$CLASS_PATH:$(collect_jars "$LUWRAIN_DIR/jar/.")"
+CLASS_PATH="$CLASS_PATH:$(collect_jars "$LUWRAIN_DIR/os/.")"
 CLASS_PATH="$CLASS_PATH:$(collect_jars "$USER_APPS_DIR/.")"
 
 CONF_LIST="$(collect_xml "$LUWRAIN_CONF_DIR/.")"
