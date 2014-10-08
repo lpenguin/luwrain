@@ -46,7 +46,7 @@ fi
 exec java \
 -cp "$CLASS_PATH" \
 -Dsun.java2d.fontpath="$USER_FONTS_DIR" \
--Djava.library.path="$LUWRAIN_DIR/lib" \
+-Djava.library.path="$LUWRAIN_DIR/lib:$LUWRAIN_DIR/os" \
 "$MAIN_CLASS" \
 --data-dir="$LUWRAIN_DATA_DIR" \
 --user-home-dir="$USER_HOME_DIR" \
