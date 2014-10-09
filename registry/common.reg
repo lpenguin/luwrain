@@ -36,7 +36,7 @@ dir /org/luwrain/global-keys/paste
 string /org/luwrain/global-keys/paste/non-character insert
 bool /org/luwrain/global-keys/paste/with-shift true
 dir /org/luwrain/global-keys/main-menu
-string /org/luwrain/global-keys/main-menu/non-character windows
+string /org/luwrain/global-keys/main-menu/non-character f5
 dir /org/luwrain/global-keys/quit
 string /org/luwrain/global-keys/quit/character q
 bool /org/luwrain/global-keys/quit/with-left-alt true
