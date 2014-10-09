@@ -4,3 +4,5 @@ os
 lib
 api
 .idea
+*.sqlite3
+out/
