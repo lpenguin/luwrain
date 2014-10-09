@@ -23,4 +23,15 @@ public class Value
     public int intValue;
     public String strValue = "";
     public boolean boolValue;
+
+    @Override
+    public String toString() {
+        return "Value{" +
+                "type=" + type +
+                ", name='" + name + '\'' +
+                ", intValue=" + intValue +
+                ", strValue='" + strValue + '\'' +
+                ", boolValue=" + boolValue +
+                '}';
+    }
 }

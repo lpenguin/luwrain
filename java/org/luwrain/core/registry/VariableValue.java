@@ -38,15 +38,31 @@ public class VariableValue extends Value
 
     public boolean insert() throws SQLException
     {
-	PreparedStatement st = con.prepareStatement("INSERT INTO registry_value (id,dir_id,name,value_type,int_value,str_value,bool_value) VALUES (?,?,?,?,?,?,?);");
-	st.setLong(1, id);
-	st.setLong(2, dirId);
-	st.setString(3, name.trim());
-	st.setInt(4, type);
-	st.setInt(5, intValue);
-	st.setString(6, strValue);
-	st.setBoolean(7, boolValue);
-	return st.executeUpdate() >= 1;
+        System.out.print("Insert value: "+this.toString()+"\n");
+        if(id != 0) {
+            PreparedStatement st = con.prepareStatement(
+                    "INSERT INTO registry_value (id,dir_id,name,value_type,int_value,str_value,bool_value) VALUES (?,?,?,?,?,?,?);");
+            st.setLong(1, id);
+            st.setLong(2, dirId);
+            st.setString(3, name.trim());
+            st.setInt(4, type);
+            st.setInt(5, intValue);
+            st.setString(6, strValue);
+            st.setBoolean(7, boolValue);
+            return st.executeUpdate() >= 1;
+        }else {
+            PreparedStatement st = con.prepareStatement(
+                    "INSERT INTO registry_value (dir_id,name,value_type,int_value,str_value,bool_value) VALUES (?,?,?,?,?,?);");
+            st.setLong(1, dirId);
+            st.setString(2, name.trim());
+            st.setInt(3, type);
+            st.setInt(4, intValue);
+            st.setString(5, strValue);
+            st.setBoolean(6, boolValue);
+            return st.executeUpdate() >= 1;
+        }
+
+
     }
 
     public boolean select() throws SQLException
@@ -134,5 +150,14 @@ public class VariableValue extends Value
 	value.strValue = rs.getString(6);
 	value.boolValue = rs.getBoolean(7);
 	return value;
+    }
+
+    @Override
+    public String toString() {
+        return "VariableValue{" +
+                "con=" + con +
+                ", id=" + id +
+                ", dirId=" + dirId +
+                '}'+super.toString();
     }
 }

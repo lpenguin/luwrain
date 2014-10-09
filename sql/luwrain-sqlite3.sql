@@ -1,5 +1,5 @@
 CREATE TABLE registry_dir (
-  id INT NOT NULL PRIMARY KEY,
+  id integer PRIMARY KEY,
   name text NOT NULL,
   parent_id INT NOT NULL
 );

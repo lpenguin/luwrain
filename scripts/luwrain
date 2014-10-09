@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 # The Luwrain startup script
 # Michael Pozhidaev <msp@altlinux.org>
 
@@ -51,4 +51,6 @@ exec java \
 --data-dir="$LUWRAIN_DATA_DIR" \
 --user-home-dir="$USER_HOME_DIR" \
 --conf-list="$CONF_LIST" \
-"$@" &> "$LOG_FILE"
+--add-reg="$LUWRAIN_DIR/registry/common.reg"
+--add-reg="$LUWRAIN_DIR/registry/ru.reg"
+"$@" #&> "$LOG_FILE"
